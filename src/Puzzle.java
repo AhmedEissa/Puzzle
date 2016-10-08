@@ -1,17 +1,21 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.util.Timer;
 
 import javax.swing.*;
 
 public class Puzzle extends JPanel {
 	Segment[] segments;
 	Image img;
-	
+    Timer t;
+    JLabel label;
+    boolean timer = false;
 	public boolean started = false;
 	public boolean mixing = false;
 	
-	public Puzzle(Image img) {
+	public Puzzle(Image img,JLabel label) {
+        this.label=label;
 		this.img = img;
 		segments = new Segment[9];
 		int segmentSize = img.getWidth(null)/3;
@@ -25,11 +29,26 @@ public class Puzzle extends JPanel {
 		segments[8].isEmpty = true;
 		mix.start();
 	}
+
+    public void startTimer() {
+        timer = true;
+        t = new Timer();
+        t.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                int sec = Integer.parseInt(label.getText().split(" ")[0]);
+                sec++;
+                label.setText(String.valueOf(sec)+" Sec");
+            }
+        }, 0, 1000);
+    }
 	
 	Thread mix = new Thread(new Runnable() {
 		public void run() {
 			mixing = true;
-			while (mixing) {
+            long t= System.currentTimeMillis();
+            long end = t+5000;
+			while (System.currentTimeMillis() < end) {
 				ArrayList<Integer> possibleMovements = new ArrayList<Integer>();
 				for (Segment s : segments) {
 					if (s.getPosition().x == segments[8].getPosition().x+1 && s.getPosition().y == segments[8].getPosition().y) possibleMovements.add(s.getID());
@@ -49,10 +68,14 @@ public class Puzzle extends JPanel {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {}
 			}
+            mixing = false;
 		}
 	});
 	
 	public void onClick(MouseEvent e) {
+        if(!timer && !mixing){
+            startTimer();
+        }
 		for (Segment s : segments) {
 			if (s.hitten(e.getPoint())) {
 				Point tmp = s.getPosition();
@@ -71,8 +94,11 @@ public class Puzzle extends JPanel {
 					}
 					
 					if (done) {
+                        t.cancel();
 						started = false;
 						segments[8].isEmpty = false;
+                        JOptionPane.showMessageDialog(null,"Well done!\n" +
+                                "Your time was "+label.getText().split(" ")[0]+" seconds");
 					}
 				}
 			}
